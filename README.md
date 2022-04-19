@@ -1,2 +1,3 @@
-# gee
-Google Earth Engine sample scripts
+## Google Earth Engine sample scripts
+
+This repo shares sample GEE javascripts.
