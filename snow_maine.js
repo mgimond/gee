@@ -1,7 +1,7 @@
 
 /*
 Generates snow water equivalent raster from Daymet V4 data.
-Can be modified to generate other climatological cummaries.
+Can be modified to generate other climatological summaries.
 */
 
 var state =['23'] /* Maine only. Add more states via commas */
