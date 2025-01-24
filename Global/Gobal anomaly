@@ -1,0 +1,42 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var imageCollection = ee.ImageCollection("MODIS/006/MOD11A1");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var temp = ee.ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')
+                  .filter(ee.Filter.date('2018-07-01', '2018-08-01'))
+                  .select('Tair_f_inst')
+                  .reduce(ee.Reducer.mean());
+print(temp)
+var temp2 = temp.expression( 'temp1 - 273.15', {'temp1': temp.select('Tair_f_inst_mean')}); 
+// 30 year average from 1981 to 2001
+var temp30 = ee.ImageCollection('OREGONSTATE/PRISM/Norm81m')
+             .select('tmean')
+             .filter(ee.Filter.eq('system:index', '07'))  // Select month number
+             .reduce(ee.Reducer.mean());;  
+
+print(temp30) ;
+
+var diff = temp2.subtract(temp30) ;
+print(diff)
+
+var temp1_col = {
+  min: -25,
+  max: 25,
+  palette: ['1303ff', '42fff6', 'f3ff40', 'ff5d0f'],
+};
+var diff_col = {
+  min: -10,
+  max: 10,
+  palette: ['1303ff', '42fff6', 'f3ff40', 'ff5d0f'],
+};
+Map.setCenter(-69, 45, 3);
+Map.addLayer(
+    diff, diff_col,
+    'Difference [C]'); 
+/* Map.addLayer(
+    temp30, temp1_col,
+    'Temp 30');   
+
+Map.addLayer(
+    temp2, temp1_col,
+    'Temp');       */ 
+    

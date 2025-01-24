@@ -1,0 +1,45 @@
+// Define the scene's center
+var point = ee.Geometry.Point([28.586476867675742, -20.155066218692486]);
+
+// Define the study extent rectangular boundary
+var poly = ee.Geometry.Rectangle(
+        [28.44966575570811, -20.28199570977856,
+          28.714710921723736, -20.046086707549875]);
+
+// Select the rainfall source (Monthly precip)
+// https://developers.google.com/earth-engine/datasets/catalog/TRMM_3B43V7
+//var raw = ee.ImageCollection('TRMM/3B43V7').select('precipitation')
+var raw = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE").select('pr').
+          filter(ee.Filter.date('2017-12-01', '2018-02-01'));
+print(raw)
+
+// Define imagery search parameters
+ var precip = ee.Image(raw
+    .filterBounds(poly)
+    .first() // Grab the first occurance
+ );
+
+// List the imagery source and data in the COnsole window
+print('precip', precip);  
+
+// Define color scheme for the rainfall layer
+var colorizedVis = {
+  min: 0,
+  max: 150,
+  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
+};
+
+// Generate the map
+Map.setCenter(28.593, -20.157,7);      // Center the map on Bulawayo
+Map.addLayer(precip, colorizedVis, 'Rainfall'); // Display the rainfall layer
+
+// Export to drive
+// The following code creates the task but you will need
+// to click on the Task tab to actually process the download operation.
+Export.image.toDrive({
+  image: precip,
+  description: 'precip_gee',
+  region: poly
+});
+
+

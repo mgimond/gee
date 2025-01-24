@@ -1,0 +1,69 @@
+// Load the state boundaries dataset and filter for Maine
+var states = ee.FeatureCollection("TIGER/2018/States");
+var maine = states.filter(ee.Filter.eq('NAME', 'Maine'));
+
+// Load the CHIRPS dataset for current precipitation (1981-2010)
+// Load the dataset for minimum and maximum temperature for model X
+var chirps = ee.ImageCollection("OREGONSTATE/PRISM/Norm91m")
+  .select('ppt')
+  .filter(ee.Filter.calendarRange(6, 8, 'month'));
+  
+/* var chirps = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+  .filterDate('1981-01-01', '2010-12-31')
+  .filter(ee.Filter.calendarRange(6, 8, 'month')); */
+
+// Load the HadGEM2 projected precipitation dataset for future precipitation (2041-2070)
+// Load the HadGEM2 projected precipitation dataset
+var modelName = 'HadGEM2-ES365';
+var startDate = ee.Date('2020-01-01'); 
+var endDate = ee.Date('2099-12-31');
+var scenario = 'rcp45';
+
+var hadgem = ee.ImageCollection('IDAHO_EPSCOR/MACAv2_METDATA_MONTHLY')
+  .filter(ee.Filter.eq('model', modelName))
+  .filter(ee.Filter.eq('scenario', scenario))
+  .filter(ee.Filter.date(startDate, endDate))
+  .filter(ee.Filter.calendarRange(6, 8, 'month'));
+
+// Calculate the 30-year average precipitation for current and future periods
+// Calculate the 30-year average precipitation for the current period (1981-2010)
+var currentAvg = chirps.sum().divide(30).clip(maine).rename('current_precip');
+
+// Function to calculate yearly precipitation change
+function calculateYearlyChange(hadgem, currentAvg, year) {
+  var yearCollection = hadgem.filter(ee.Filter.calendarRange(year, year, 'year'));
+  var yearlyTotal = yearCollection.sum().clip(maine).select([0]); // Select the first band
+  var yearlyChange = yearlyTotal.subtract(currentAvg).rename('yearly_change');
+  var meanChange = yearlyChange.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: maine.geometry(),
+    scale: 5000
+  });
+  return ee.Feature(null, {
+    'year': year,
+    'change_in_precip': meanChange.get('yearly_change'),
+    '30year': currentAvg.reduceRegion({reducer: ee.Reducer.mean(),
+                                         geometry: maine.geometry(),scale: 5000}).get('current_precip'),
+    'prediction': yearlyTotal.rename('future').reduceRegion({reducer: ee.Reducer.mean(),
+                                         geometry: maine.geometry(),scale: 5000}).get('future')
+                                         
+  });
+}
+
+// Generate features for each year from 2021 to 2070
+var years = ee.List.sequence(2021, 2099);
+var yearlyChanges = years.map(function(year) {
+  return calculateYearlyChange(hadgem, currentAvg, ee.Number(year));
+});
+
+// Convert the results into a FeatureCollection
+var results = ee.FeatureCollection(yearlyChanges);
+
+print(results)
+
+// Export the results as a CSV file
+Export.table.toDrive({
+  collection: results,
+  description: 'Maine_Yearly_Change_in_Precipitation',
+  fileFormat: 'CSV',
+});

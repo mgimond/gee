@@ -1,0 +1,47 @@
+// Define regions (this should be pulled from your Assets tab)
+// Modify the directory structure to reflect your Assets directory structure
+var regions = ee.FeatureCollection("users/mgimond/tanzania/gadm36_TZA_2");
+
+// MODIS vegetation imagery averaged over a one month period in the following
+// example.
+// See https://developers.google.com/earth-engine/datasets/catalog/MODIS_006_MOD13Q1
+var evi = ee.ImageCollection("MODIS/006/MOD13Q1")
+          .filter(ee.Filter.date('2018-01-01', '2018-01-30'))
+          .select('EVI')
+          .map(function(image){return image.clip(regions)})
+          .reduce(ee.Reducer.mean())
+          .multiply(0.0001);
+
+
+// Compute the average EVI value by individual polygon
+var evi_region = evi.reduceRegions({
+      reducer: ee.Reducer.mean(),
+      collection: regions,
+      scale: 1000  // Not to be confused with the rescaling applied to EVI values
+    }); 
+
+// View the average EVI for the specified time period
+// Note that the image is clipped to the region of interest
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+Map.addLayer(evi, colorizedVis, 'EVI');
+Map.addLayer(regions);
+
+
+// Export to your google drive
+// Don't forget to check your Tasks tab to export the file
+Export.table.toDrive({
+  collection: evi_region,
+  description: 'evi_by_region',
+  fileFormat: 'CSV'
+});
+
+

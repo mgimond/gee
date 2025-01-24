@@ -1,0 +1,28 @@
+var state =['23']; /* Maine only for now. Add more states via comma */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+
+var image = ee.Image("USGS/SRTMGL1_003");
+            
+var elev = image.clip(st_sub);
+var hillshd =  ee.Terrain.hillshade(elev);
+Map.addLayer(hillshd);
+print(st_sub.geometry().bounds());
+
+// Export to google drive
+
+Export.image.toDrive({
+  image: hillshd,
+  description: 'ME_hillshade',
+  region: st_sub.geometry().bounds(),
+  crs: 'EPSG:26919'
+});
+
+// Export to Google drive
+
+Export.image.toDrive({
+  image: elev,
+  description: 'ME_DEM',
+  region: st_sub.geometry().bounds(),
+  crs: 'EPSG:26919'
+});

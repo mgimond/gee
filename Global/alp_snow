@@ -1,0 +1,45 @@
+// Define areas
+var alps = ee.FeatureCollection("users/mgimond/alps_extent");
+
+// define extent
+/*
+var france = ee.FeatureCollection('FAO/GAUL/2015/level0').
+filter(ee.Filter.eq('ADM0_NAME', 'France'))
+
+var switzerland = ee.FeatureCollection('FAO/GAUL/2015/level0').
+filter(ee.Filter.eq('ADM0_NAME', 'Switzerland')); 
+
+var alpsGeometry = france.merge(switzerland);
+*/
+
+// get data
+var dataset = ee.ImageCollection('MODIS/061/MYD10A1')
+  .filterDate('2014-01-01', '2023-05-01');
+  
+// Calculate the 5-year average snow cover
+var averageSnowCover = dataset.select('NDSI_Snow_Cover').mean();
+
+// Filter the dataset to the Alps region
+var averageSnowCover = averageSnowCover.clip(alps);
+
+
+// Create a visualization for the average snow cover
+var snowCoverVis = {
+  min: 0.0,
+  max: 100.0,
+  palette: ['black', '0dffff', '0524ff', 'ffffff'],
+};
+
+// Center the map on the French and Swiss Alps
+Map.setCenter(8, 46, 5);
+
+// Add the average snow cover to the map
+Map.addLayer(averageSnowCover, snowCoverVis, 'Average Snow Cover (2014-2019)');
+
+// Export the image, specifying scale and region.
+Export.image.toDrive({
+  image: averageSnowCover,
+  region: alps.geometry().bounds(),
+  description: 'snow_cover_2014_2023',
+  scale: 1000
+});  

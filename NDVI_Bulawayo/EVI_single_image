@@ -1,0 +1,53 @@
+// Define the scene's center
+var point = ee.Geometry.Point([28.586476867675742, -20.155066218692486]);
+
+// Define the study extent rectangular boundary
+var poly = ee.Geometry.Rectangle(
+        [28.44966575570811, -20.28199570977856,
+          28.714710921723736, -20.046086707549875]);
+
+// Here's a list of EVI sources. Uncomment just one of the 
+// image sources. For a list of Landsat products, see here:
+// https://developers.google.com/earth-engine/datasets/catalog/landsat/
+
+// var raw = ee.ImageCollection('LANDSAT/LT04/C01/T1_32DAY_NDVI')
+// var raw = ee.ImageCollection('LANDSAT/LT05/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_32DAY_EVI')
+var raw = ee.ImageCollection('LANDSAT/LC08/C01/T1_8DAY_EVI')
+
+// Define imagery search parameters
+ var evi = ee.Image(raw
+    .filterBounds(poly)
+    .filterDate('2017-12-30', '2018-03-30')
+    .first() // Grab the first occurance
+ );
+
+// List the imagery source and data in the COnsole window
+print('evi', evi);  // List EVI images in the console
+
+// Define color scheme for EVI layer
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+// Generate the map
+Map.setCenter(28.593, -20.157,12);      // Center the map on Bulawayo
+Map.addLayer(evi, colorizedVis, 'EVI'); // Display the EVI layer
+
+// Export to drive
+// The following code creates the task but you will need
+// to click on the Task tab to actually process the download operation.
+Export.image.toDrive({
+  image: evi,
+  description: 'EVI_google',
+  region: poly
+});
+
+

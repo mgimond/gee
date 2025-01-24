@@ -1,0 +1,38 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var imageCollection = ee.ImageCollection("WorldPop/POP");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+// Define the scene's geometry (Tanzania). Use two letter FIPS codes.
+var cntry =['TZ']
+var geom = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',cntry));
+    
+// https://developers.google.com/earth-engine/datasets/catalog/TRMM_3B43V7
+var precip = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
+          .filter(ee.Filter.date('1980-12-01', '1981-12-31'))
+          .select('pr');
+
+var precip_sum = precip.reduce(ee.Reducer.sum());
+var precip_tz_sum = precip_sum.clip(geom).toDouble();
+
+// Define color scheme for the rainfall layer
+var colorizedVis = {
+  min: 0,
+  max: 1000,
+  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
+};
+
+// Generate the map
+Map.centerObject(geom)      // Center the map on Bulawayo
+Map.addLayer(precip_tz_sum, colorizedVis, 'Rainfall_tz'); // Display the rainfall layer
+
+
+// Export to drive
+// The following code creates the task but you will need
+// to click on the Task tab to actually process the download operation.
+Export.image.toDrive({
+  image: precip_tz_sum,
+  description: 'Precip_Tanzania_mean_mm',
+  fileFormat: 'GeoTIFF'
+});
+
+

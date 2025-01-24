@@ -1,0 +1,87 @@
+/**
+ * Function to mask clouds based on the pixel_qa band of Landsat 8 SR data.
+ * @param {ee.Image} image Input Landsat 8 SR image
+ * @return {ee.Image} Cloudmasked Landsat 8 image
+ */
+function maskL8sr(image) {
+  // Bits 3 and 5 are cloud shadow and cloud, respectively.
+  var cloudShadowBitMask = (1 << 3);
+  var cloudsBitMask = (1 << 5);
+  // Get the pixel QA band.
+  var qa = image.select('BQA');
+  // Both flags should be set to zero, indicating clear conditions.
+  var mask = qa.bitwiseAnd(cloudShadowBitMask).eq(0)
+                 .and(qa.bitwiseAnd(cloudsBitMask).eq(0));
+  return image.updateMask(mask);
+}
+
+
+var point = ee.Geometry.Point([28.57600852914561, -20.1544170875363]);
+var poly = ee.Geometry.Rectangle(
+        [28.44966575570811, -20.28199570977856,
+          28.714710921723736, -20.046086707549875]);
+
+
+// var raw = ee.ImageCollection('LANDSAT/LT04/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LT05/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_8DAY_EVI')
+
+var raw = ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
+//            .map(maskL8sr);
+
+ var image = ee.Image(raw
+    .filterBounds(point)
+    .filterDate('2015-06-01', '2015-09-01')
+    .sort('CLOUD_COVER')
+    .first());
+print(image)
+
+var evi = image.expression(
+    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+      'NIR': image.select('B5'),
+      'RED': image.select('B4'),
+      'BLUE': image.select('B2')
+});
+
+print(evi) // Print info to console
+
+// Define color scheme
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+// Add layer to map
+Map.setCenter(28.593, -20.157,12); // Center the map
+Map.addLayer(evi, colorizedVis, 'EVI'); // Display the map
+//var vegPalette = ['red', 'blue', 'yellow', 'green'];
+//Map.addLayer(evi, {min: -1, max: 1, palette: vegPalette}, 'EVI');
+
+
+// Making a chart at point loacation overtime
+/*
+var chart = ui.Chart.image.series({
+  imageCollection: evi,
+  region: point,
+  reducer: ee.Reducer.first(),
+  scale: 1
+}).setOptions({title: 'EVI over time'});
+
+print(chart)
+
+
+// Export to drive
+// Create a task that you can launch from the Tasks tab.
+Export.image.toDrive({
+  image: evi,
+  description: 'EVI_google',
+  region: poly,
+  scale: 30
+});
+*/
+

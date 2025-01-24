@@ -1,0 +1,27 @@
+var geometry = ee.Geometry.Point([-69.64, 44.55]).buffer(100);
+
+var dataset = ee.ImageCollection('NASA/ORNL/DAYMET_V3')
+                  .filter(ee.Filter.date('1980-10-01', '2019-01-01'))
+                  .select('swe');
+
+// prcp (mm), srad(w/m2), swe (kg/m^2), tmax (C), tmin(C), vp (Pa)
+
+
+var table = dataset.map(function(img) {
+  // Add the date as a number
+  var dateStr = img.date();
+  var dateNum = ee.Number.parse(dateStr.format("YYYYMMdd"));
+  img = img.addBands(ee.Image(dateNum).rename('date'));
+  return img.reduceRegions({collection: geometry, reducer: ee.Reducer.mean(), scale: 30, crs: "EPSG:4326" })})
+  .flatten();
+  
+// Generate table
+table = table.filter(ee.Filter.neq('swe', null)).select(['swe','date']);
+
+// Export to drive
+Export.table.toDrive(table, "snow", 'GEE', {fileFormat: "CSV", driveFileNamePrefix: "snowME"});
+
+
+
+
+

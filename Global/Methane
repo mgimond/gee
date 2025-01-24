@@ -1,0 +1,25 @@
+// find the countries in the country list
+var st_sub = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',["US"]));
+
+var image = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CH4')
+  .select('CH4_column_volume_mixing_ratio_dry_air')
+  .filterDate('2023-05-01', '2023-06-01')
+  .mean()
+  .clip(st_sub);
+
+var band_viz = {
+  min: 1750,
+  max: 1900,
+  palette: ['black', 'blue', 'purple', 'cyan', 'green', 'yellow', 'red']
+};
+
+Map.addLayer(image, band_viz, 'S5P CH4');
+Map.setCenter(0.0, 0.0, 2);
+
+// Export the image, specifying scale and region.
+Export.image.toDrive({
+  image: image,
+  description: 'methane',
+  scale: 10000
+});  

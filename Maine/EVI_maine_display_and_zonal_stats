@@ -1,0 +1,74 @@
+/* Use built-in dataset */
+//var state =['23'] /* Maine only for now. Add more states via comma */
+//var st_sub = ee.FeatureCollection("TIGER/2016/States")
+//    .filter(ee.Filter.inList('STATEFP',state));
+
+/* Use uploaded shapefile (via Assets tab) */
+var st_sub = ee.FeatureCollection("users/mgimond/ME_town_boundaries")
+
+/* Choose from imagery collection */
+// var raw = ee.ImageCollection('LANDSAT/LT04/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LT05/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LC8_L1T_8DAY_EVI')
+var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_32DAY_EVI')
+
+/* Define search criteria */
+var evi = ee.Image(raw
+//    .filterBounds(st_sub)
+    .filterDate('2016-06-01', '2017-09-01')
+//  .sort('CLOUD_COVER')
+    .first());
+
+/*  Clip to boundary file */
+var evi_clip = evi.clip(st_sub);
+
+/* Print imagery metadata */
+print(evi_clip)
+  
+/*    
+var subset = dataset.filterBounds(point);
+var evi = subset.select('EVI');
+*/
+
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+// Generate map layers
+Map.setCenter(-69.5, 45,6); // Center the map
+Map.addLayer(evi_clip, colorizedVis, 'EVI'); // Display the EVI layer 
+//Map.addLayer(st_sub); // Display the town outline 
+
+// Compute average EVI by township (add to vector layer)
+var EVI_mean = evi_clip.reduceRegions({
+  collection: st_sub,
+  reducer: ee.Reducer.mean(),
+  scale: 30,
+});
+
+//print(means)
+// Print the first feature, to illustrate the result.
+print(ee.Feature(EVI_mean.limit(10)));
+
+// Export to google drive
+// Needs to be finalized on the Tasks tab.
+Export.image.toDrive({
+  image: evi_clip,
+  description: 'EVI_maine',
+  region: st_sub
+});
+
+/* Export shapefile */
+Export.table.toDrive({
+  collection: EVI_mean,
+  description:'EVI_zonal',
+  fileFormat: 'KML'
+});
+

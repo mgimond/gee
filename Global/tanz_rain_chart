@@ -1,0 +1,16 @@
+// Define area of interest, TZ is Tanzania
+var cntry =['TZ']  
+var geom = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',cntry));
+
+// Select the rainfall source (Monthly precip)
+// https://developers.google.com/earth-engine/datasets/catalog/TRMM_3B43V7
+var precip = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
+          .filter(ee.Filter.date('1980-12-01', '1990-12-31'))
+          .select('pr');
+
+// Plot mean precip for Tanzania vs time.
+print(ui.Chart.image.series(precip, geom, ee.Reducer.mean(), 1000));
+
+
+

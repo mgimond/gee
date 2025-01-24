@@ -1,0 +1,20 @@
+// Define areas
+var regions = ee.FeatureCollection("users/mgimond/tanzania/gadm36_TZA_2");
+
+// Select the rainfall source (Monthly precip)
+// https://developers.google.com/earth-engine/datasets/catalog/TRMM_3B43V7
+var precip = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
+          .filter(ee.Filter.date('1981-01-01', '1981-12-31'))
+          .select('pr')
+          .reduce(ee.Reducer.sum())
+
+
+var precip_region = precip.reduceRegions({
+  collection: regions,
+  reducer: ee.Reducer.mean(),
+  scale: 1000,
+});
+
+print(ui.Chart.image.byRegion(precip, regions, ee.Reducer.mean(), 1000, "GID_2"));
+
+

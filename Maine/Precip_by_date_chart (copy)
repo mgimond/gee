@@ -1,0 +1,30 @@
+
+/* Use uploaded shapefile (via Assets tab) */
+var Maine = ee.FeatureCollection("users/mgimond/Maine_boundary")
+
+// Define projection
+var proj = ee.Projection('EPSG:26919');
+
+var divide10 = function(image) {
+  return image.divide(10);
+};
+
+// Get meteo dataset for max temp (input in 1/10th degree C) 
+var maxtemp = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
+          .filter(ee.Filter.date('1980-12-01', '1990-12-31'))
+          .select('tmmx')
+          .mean()
+          .clip(Maine)
+          .divide(10)
+//          .divide(ee.Number(10))
+          .reproject(proj, null, 1000);
+
+print(maxtemp)
+
+Map.addLayer(maxtemp);
+// Plot mean max temp for Maine vs time.
+print(ui.Chart.image.series(maxtemp, Maine));
+//print(ui.Chart.image.series(maxtemp, Maine, ee.Reducer.mean()));
+
+// If you want the sum value, use ee.Reducer.sum()
+

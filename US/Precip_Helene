@@ -1,0 +1,30 @@
+var southeast_extent = ee.Geometry.Rectangle([-88, 25, -78, 36]);
+
+// Daily data
+var ppt = ee.ImageCollection('OREGONSTATE/PRISM/AN81d')
+                  .filter(ee.Filter.date('2024-09-24', '2024-09-25'))  // Select month via date range
+                  .select('ppt') 
+                  .reduce(ee.Reducer.sum())
+                  .clip(southeast_extent);
+
+print(ppt)  
+
+Map.setCenter(-80, 30, 5);
+ 
+var ppt_col = {
+  min: 0,
+  max: 100,
+  palette: ['red', 'yellow', 'blue'],
+};
+
+Map.addLayer(
+    ppt, ppt_col,
+    'Difference [C]'); 
+    
+Export.image.toDrive({
+  image: ppt,
+  description: '2024-09-24_to_25',
+  scale: 5000,
+  folder: "GEE",
+  region: southeast_extent
+})

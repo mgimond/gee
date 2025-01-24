@@ -1,0 +1,101 @@
+// SCRIPT FOR CREATING AND CLIPPING ALL WEATHER DATA 
+
+/*  Loading in CA
+var StateCollection = ee.FeatureCollection('TIGER/2016/States');
+var CA = StateCollection.filter(ee.Filter.eq('NAME', 'California'));
+*/
+
+//  LOADING STUDY AREA
+var StudyArea = ee.FeatureCollection('users/jhtayl21/StudyArea')
+//Map.addLayer(StudyArea, {color: '#61A0AF', opacity:0.4}, 'StudyArea');
+
+//  CREATING WEATHER DATA PARAMS
+
+// Getting pr/bi for 2020-12. Subset 
+var bi_2012_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filterDate('2011-09-01', '2012-09-01')
+          .filterBounds(StudyArea)
+          .select('pr')
+          .mean();
+          
+evi.clip
+/*
+var bi_2013_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2012-09-01', '2013-09-01'))
+          .select('pr');
+
+var bi_2014_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2013-09-01', '2014-09-01'))
+          .select('pr');
+
+var bi_2015_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2014-09-01', '2015-09-01'))
+          .select('pr');
+
+var bi_2016_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2015-09-01', '2016-09-01'))
+          .select('pr');
+
+var bi_2017_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2016-09-01', '2017-09-01'))
+          .select('pr');
+
+var bi_2018_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2017-09-01', '2018-09-01'))
+          .select('pr');
+
+var bi_2019_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2018-09-01', '2019-09-01'))
+          .select('pr');
+
+var bi_2020_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET")
+          .filter(ee.Filter.date('2019-09-01', '2020-09-01'))
+          .select('pr');
+*/
+/*
+//    Master weather data
+var pr_master_var = ee.ImageCollection("IDAHO_EPSCOR/GRIDMET") 
+          .filter(ee.Filter.date('2011-09-01', '2020-09-01'))
+          .select('bi');
+
+
+var pr_master = print(ui.Chart.image.series(pr_master_var, StudyArea, ee.Reducer.mean()));
+*/
+/*
+var pr_m = pr_master_var.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry: StudyArea
+});
+
+
+// If you want the sum value, use ee.Reducer.sum()
+
+
+// PRINTING WEATHER FOR CA CSVs
+
+var pr_2020 = print(ui.Chart.image.series(bi_2020_var, StudyArea, ee.Reducer.mean()));
+var pr_2019 = print(ui.Chart.image.series(bi_2019_var, StudyArea, ee.Reducer.mean()));
+var pr_2018 = print(ui.Chart.image.series(bi_2018_var, StudyArea, ee.Reducer.mean()));
+var pr_2017 = print(ui.Chart.image.series(bi_2017_var, StudyArea, ee.Reducer.mean()));
+var pr_2016 = print(ui.Chart.image.series(bi_2016_var, StudyArea, ee.Reducer.mean()));
+var pr_2015 = print(ui.Chart.image.series(bi_2015_var, StudyArea, ee.Reducer.mean()));
+var pr_2014 = print(ui.Chart.image.series(bi_2014_var, StudyArea, ee.Reducer.mean()));
+var pr_2013 = print(ui.Chart.image.series(bi_2013_var, StudyArea, ee.Reducer.mean()));
+*/
+Map.addLayer(bi_2012_var);
+
+/*
+var bi_2020 = StudyArea.map(function(f) {
+  return f.intersection(bi_2020_var, 1); //1 refers to the maxError argument
+});
+
+
+Export.table.toDrive({
+  collection: bi_2020,
+  description:'bi_2020',
+  fileFormat: 'CSV'
+});
+
+
+*/
+

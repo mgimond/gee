@@ -1,0 +1,44 @@
+var state =['23']; /* Maine only for now. Add more states via comma */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+
+// Load the dataset for minimum and maximum temperature for model X
+var precip = ee.ImageCollection("OREGONSTATE/PRISM/Norm91m")
+  .select('ppt')
+
+// Subset by date range. Jan -> month = 1
+  
+var precip_months = precip.filter(ee.Filter.calendarRange(6, 8, 'month')) // jan = 1
+                  .sum()
+//var temp_spring = temp.mean()
+
+// Clip image collection
+var precip_me = precip_months.clip(st_sub);
+
+//var mintemp_maine = macavData.map(clip_images);
+var precippal = {
+  min: 200,
+  max: 700,
+  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
+};
+Map.setCenter(-69.5, 45.5, 5);
+
+Map.addLayer(
+    precip_me, precippal,
+    'Precip');
+
+//Map.addLayer(
+//    temp, monthlyAirTemperatureVis,
+//    'All'); 
+
+Export.image.toDrive({
+  image: precip_me,
+  description: 'precip_summer_30yr',
+  scale: 3000,
+  crs: "epsg:26919",
+  folder: "GEE",
+  region: st_sub
+})
+
+
+

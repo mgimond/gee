@@ -1,0 +1,32 @@
+var state =['20']; /* Kansas state code */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+
+// Daily data
+var ppt = ee.ImageCollection('OREGONSTATE/PRISM/AN81d')
+                  .filter(ee.Filter.date('2020-01-01', '2020-12-30'))  // Select month via date range
+                  .select('ppt') 
+                  .reduce(ee.Reducer.sum())
+                  .clip(st_sub);
+
+print(ppt)  
+
+Map.setCenter(-100.55, 40.71, 4);
+ 
+var ppt_col = {
+  min: 200,
+  max: 2000,
+  palette: ['red', 'yellow', 'blue'],
+};
+
+Map.addLayer(
+    ppt, ppt_col,
+    'Precip'); 
+   
+Export.image.toDrive({
+  crs: "epsg:32614",
+  scale: 3000,
+  folder: "GEE",
+  image: ppt,
+  description: 'ppt_2020',
+}); 

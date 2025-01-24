@@ -1,0 +1,72 @@
+// variables to extract: Tair_f_inst (K), Rainf_f_tavg (kg/m^2/s) , 
+// Wind_f_inst (m/s)
+
+// Define study extent
+var cc =['CO']  // Extract Columbia
+var st_sub = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',cc));
+
+// Define date range
+var start = ee.Date('2000-01-01');
+var end = ee.Date('2017-01-01');
+
+// Data source
+var collection = ee.ImageCollection('NASA/GLDAS/V021/NOAH/G025/T3H')
+              .select('Rainf_f_tavg')
+              .filterDate(start, end);
+
+// multiply by 3 hours to get amount in mm over 3 hours
+function multiP(feature) {
+  return feature.multiply(10800);
+}
+
+// Make a list of all dates
+var diff = end.difference(start, 'day')
+var range = ee.List.sequence(0, diff.subtract(1))
+            .map(function(day){return start.advance(day,'day')})
+
+// Function for iterating over the range of dates
+var day_mosaics = function(date, newlist) {
+  // Initialize
+  date = ee.Date(date)
+  newlist = ee.List(newlist)
+
+  // Filter collection between date and the next day
+  var filtered = collection.filterDate(date, date.advance(1,'day'))
+  
+  // Convert to mm of precip over 3 hours
+  filtered = filtered.map(multiP); 
+
+  // Reduce the images
+   var image1 = filtered.reduce(ee.Reducer.sum());
+   var image = image1.rename(date.format('YYYYMMdd'))
+  // Add the image to a list only if the collection has images
+  return ee.List(ee.Algorithms.If(filtered.size(), newlist.add(image), newlist))
+}
+
+// Iterate over the range to make a new list, and then cast the list to an imagecollection
+var newcol = ee.ImageCollection(ee.List(range.iterate(day_mosaics, ee.List([]))))
+
+// Assign date to bandnames
+var newcol_date = newcol.map( function(img){ 
+  var id  = img.id()
+  img = img.select('Rainf_f_tavg').rename(id);
+return img.copyProperties(img,['system:time_start','system:time_end']); });
+
+// Convert to multiband image
+var img1 = newcol.toBands()
+var img2 = img1.set('system:time_start', range); // Add timestamp
+var img3 = img2.clip(st_sub).float();  // Clip to region
+
+//print(img3)
+//Map.addLayer(img3);
+
+// Export the image, specifying scale and region.
+Export.image.toDrive({
+  image: img3,
+  description: 'Columbia_precip',
+  scale: 10000,
+  region: st_sub,
+  fileFormat: 'TIF',
+  crs: 'epsg:4326'
+});

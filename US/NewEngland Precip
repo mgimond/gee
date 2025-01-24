@@ -1,0 +1,39 @@
+// Load the CHIRPS dataset (or any preferred precipitation dataset).
+var dataset = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+                .filterDate('2020-01-01', '2020-12-31'); // Specify time range.
+
+// Load the state boundaries dataset.
+var states = ee.FeatureCollection("TIGER/2018/States");
+
+// Filter the states to include only New England states.
+var newEnglandStates = states.filter(ee.Filter.inList('NAME', [
+  'Maine', 'Vermont', 'New Hampshire', 'Massachusetts', 'Rhode Island', 'Connecticut'
+]));
+
+// Combine the states into a single geometry.
+var newEngland = newEnglandStates.geometry();
+
+// Calculate the mean precipitation.
+var totalPrecipitation = dataset.sum().clip(newEngland);
+
+// Visualization parameters.
+var precipitationVis = {
+  min: 1000,
+  max: 1500,
+  palette: ['white', 'blue', 'purple'],
+};
+
+// Add the mean precipitation layer to the map.
+Map.centerObject(newEngland, 6); // Center the map on New England.
+Map.addLayer(totalPrecipitation, precipitationVis, 'Mean Precipitation');
+
+
+// Export the raster image to Google Drive.
+Export.image.toDrive({
+  image: totalPrecipitation,
+  folder: "GEE",
+  description: 'precip_NE_2020',
+  scale: 10000,
+  region: newEngland,
+  fileFormat: 'GeoTIFF'
+});

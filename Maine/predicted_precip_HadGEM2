@@ -1,0 +1,51 @@
+var state =['23']; /* Maine only for now. Add more states via comma */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+
+var modelName = 'HadGEM2-ES365';
+var startDate = ee.Date('2050-01-01'); 
+var endDate = ee.Date('2050-12-31');
+var scenario = 'rcp45';
+
+// Load the dataset for minimum and maximum temperature for model X
+var macavData = ee.ImageCollection('IDAHO_EPSCOR/MACAv2_METDATA_MONTHLY')
+  .filter(ee.Filter.eq('model', modelName))
+  .filter(ee.Filter.eq('scenario', scenario))
+  .filter(ee.Filter.date(startDate, endDate))
+  .select('pr');
+
+// Calculate the average tmin and tmax for the span of years
+var totalprecip = macavData.filter(ee.Filter.calendarRange(6, 8, 'month')) // limit to month range (1=jan)
+                              .sum();
+                             
+// Function to crop images in an image collection
+var clip_images = function(image) {
+  return image.clip(st_sub);
+};
+
+// Clip image collection
+var maine_precip = totalprecip.clip(st_sub);
+
+//var mintemp_maine = macavData.map(clip_images);
+var precippal = {
+  min: 200,
+  max: 700,
+  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
+};
+Map.setCenter(-69.5, 45.5, 5);
+
+Map.addLayer(
+    maine_precip, precippal,
+    'Mean');
+
+Export.image.toDrive({
+  image: maine_precip,
+  folder: "GEE",
+  description: 'total_precip_maine_jun_jul_aug_2050',
+  scale: 3000,
+  crs: "epsg:26919",
+  region: st_sub
+})
+
+
+

@@ -1,0 +1,32 @@
+
+// Rectangle around Maine
+var st_sub = 
+    ee.Geometry.Polygon(
+        [[[-74.49157067387208, 48.970375089205696],
+          [-74.49157067387208, 40.30160892002415],
+          [-63.94469567387207, 40.30160892002415],
+          [-63.94469567387207, 48.970375089205696]]], null, false);
+
+//var cc = ['US'];
+//var st_sub = ee.FeatureCollection("USDOS/LSIB/2013")
+//              .filter(ee.Filter.inList('cc', cc));
+
+var dataset = ee.ImageCollection('MODIS/061/MOD10A1')
+                 .filter(ee.Filter.date('2023-12-01', '2024-01-31'));
+
+// Verify band name and handle missing data
+  var correctBandName = 'NDSI_Snow_Cover'; // Replace with the verified band name
+  var snowCover = dataset.select('NDSI_Snow_Cover').max().clip(st_sub);
+
+var snowCoverVis = {
+  min: 0.0,
+  max: 100.0,
+  palette: ['black', '0dffff', '0524ff', 'ffffff'],
+};
+Map.setCenter(-100, 40, 4);
+Map.addLayer(snowCover, snowCoverVis, 'Snow Cover');
+
+Export.image.toDrive({
+  image: snowCover,
+  description: 'snowCover',
+});

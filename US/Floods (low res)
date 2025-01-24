@@ -1,0 +1,32 @@
+var cc =['US'] 
+var st_sub = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',cc));
+
+var dataset = ee.ImageCollection("WRI/Aqueduct_Flood_Hazard_Maps/V2")
+             .select("inundation_depth")
+      //      .filterMetadata('floodtype', 'equals', 'inunriver')
+            .filterMetadata('year', 'equals', 2050)
+            .filterMetadata('model', 'equals', '00IPSL-CM5A-LR')
+            .filterMetadata('returnperiod', 'equals', 500) // 500 year flood
+            .filterMetadata('climatescenario', 'equals', 'rcp4p5')  
+            .max()
+            .clip(st_sub);
+            
+print(dataset)
+
+
+var depthVis = {
+  min: 0,
+  max: 1,
+  palette: ['ffffff','0000ff'],
+};
+Map.setCenter(-70, 47.28, 4);
+Map.addLayer(dataset, depthVis, 'JRC Flood Hazard Maps');
+
+
+Export.image.toDrive({
+  image: dataset,
+  description: '2050_flood',
+  scale: 10000,
+  skipEmptyTiles: true
+}) 

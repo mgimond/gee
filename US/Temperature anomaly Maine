@@ -1,0 +1,38 @@
+var palettes = require('users/gena/packages:palettes')
+
+var state =['23'] /* Maine only for now. Add more states via commas */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+    
+// 30 year average from 1981 to 2001
+var temp30 = ee.ImageCollection('OREGONSTATE/PRISM/Norm81m')
+              .select('tmean')
+              .filter(ee.Filter.eq('system:index', '09'))  // Select the month number
+              .reduce(ee.Reducer.mean());
+
+print(temp30)
+
+// Daily data
+var temp = ee.ImageCollection('OREGONSTATE/PRISM/AN81d')
+                  .filter(ee.Filter.date('2019-09-01', '2019-09-30'))  // Select month via date range
+                  .select('tmean') 
+                  .reduce(ee.Reducer.mean());
+
+print(temp)  
+
+var diff = temp.subtract(temp30)
+ Map.setCenter(-100.55, 40.71, 4);
+ 
+var diff_me = diff.clip(st_sub);
+//Map.addLayer(temp);
+//Map.addLayer(temp30); 
+var diff_col = {
+  min: -2,
+  max: 2,
+  palette: palettes.colorbrewer.RdYlBu[6].reverse()
+};
+
+Map.addLayer(
+    diff_me, diff_col,
+    'Difference [C]'); 
+  

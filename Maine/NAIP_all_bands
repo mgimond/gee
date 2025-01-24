@@ -1,0 +1,36 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var imageVisParam = {"opacity":1,"bands":["R","G","B"],"gamma":1};
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var geometry = 
+    /* color: #98ff00 */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-69.57940124473572, 44.63066745329522],
+          [-69.57940124473572, 44.62801035072367],
+          [-69.57396172485352, 44.62801035072367],
+          [-69.57396172485352, 44.63066745329522]]], null, false);
+
+var dataset = ee.ImageCollection('USDA/NAIP/DOQQ')
+                  .filter(ee.Filter.date('2018-01-01', '2020-12-31'))
+                  .filterBounds(geometry)
+
+var output = dataset.toBands() 
+
+//var trueColor = output.select(['R', 'G', 'B']);
+var trueColorVis = {
+  min: 0.0,
+  max: 255.0,
+};
+Map.setCenter(-69.57585, 44.6294, 18);
+Map.addLayer(output, trueColorVis, 'True Color');
+
+
+Export.image.toDrive({
+  image: output,
+  description: 'imageToDriveExample',
+  region: geometry
+});

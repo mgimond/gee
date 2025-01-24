@@ -1,0 +1,86 @@
+// Load the state boundaries dataset and filter for Maine
+var states = ee.FeatureCollection("TIGER/2018/States");
+var maine = states.filter(ee.Filter.eq('NAME', 'Maine'));
+
+// Load the CHIRPS dataset for current precipitation (1981-2010)
+// Load the dataset for minimum and maximum temperature for model X
+var chirps = ee.ImageCollection("OREGONSTATE/PRISM/Norm91m")
+  .select('tmean') // in DegC
+  .filter(ee.Filter.calendarRange(6, 8, 'month'));
+  
+/* var chirps = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+  .filterDate('1981-01-01', '2010-12-31')
+  .filter(ee.Filter.calendarRange(6, 8, 'month')); */
+
+// Load the HadGEM2 projected precipitation dataset for future precipitation (2041-2070)
+// Load the HadGEM2 projected precipitation dataset
+var modelName = 'HadGEM2-ES365';
+var startDate = ee.Date('2020-01-01'); 
+var endDate = ee.Date('2099-12-31');
+var scenario = 'rcp45';
+
+var hadgem0 = ee.ImageCollection('IDAHO_EPSCOR/MACAv2_METDATA_MONTHLY')
+  .filter(ee.Filter.eq('model', modelName))
+  .filter(ee.Filter.eq('scenario', scenario))
+  .filter(ee.Filter.date(startDate, endDate))
+  .filter(ee.Filter.calendarRange(6, 8, 'month'))
+  .select(['tasmin', 'tasmax']);  // in Kelvin
+  
+function addMeanTemperature(collection) {
+  return collection.map(function(image) {
+    var tmean = image.expression(
+      '((tasmin + tasmax) / 2) - 273.15', {
+        'tasmin': image.select('tasmin'),
+        'tasmax': image.select('tasmax')
+      }
+    ).rename('tmean');
+    return image.addBands(tmean);
+  });
+}
+
+// Apply the function to the hadgem collection
+var hadgem = addMeanTemperature(hadgem0);
+  
+
+// Calculate the 30-year average precipitation for current and future periods
+// Calculate the 30-year average precipitation for the current period (1981-2010)
+var currentAvg = chirps.mean().clip(maine).rename('current_temp');
+
+// Function to calculate yearly precipitation change
+function calculateYearlyChange(hadgem, currentAvg, year) {
+  var yearCollection = hadgem.filter(ee.Filter.calendarRange(year, year, 'year'));
+  var yearlyTotal = yearCollection.mean().clip(maine).select('tmean'); 
+  var yearlyChange = yearlyTotal.subtract(currentAvg).rename('yearly_change');
+  var meanChange = yearlyChange.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: maine.geometry(),
+    scale: 5000
+  });
+  return ee.Feature(null, {
+    'year': year,
+    'change_in_temp': meanChange.get('yearly_change'),
+    '30year': currentAvg.reduceRegion({reducer: ee.Reducer.mean(),
+                                         geometry: maine.geometry(),scale: 5000}).get('current_temp'),
+    'prediction': yearlyTotal.rename('future').reduceRegion({reducer: ee.Reducer.mean(),
+                                         geometry: maine.geometry(),scale: 5000}).get('future')
+                                         
+  });
+}
+
+// Generate features for each year from 2021 to 2070
+var years = ee.List.sequence(2021, 2099);
+var yearlyChanges = years.map(function(year) {
+  return calculateYearlyChange(hadgem, currentAvg, ee.Number(year));
+});
+
+// Convert the results into a FeatureCollection
+var results = ee.FeatureCollection(yearlyChanges);
+
+print(results)
+
+// Export the results as a CSV file
+Export.table.toDrive({
+  collection: results,
+  description: 'Maine_Yearly_Change_in_temperature',
+  fileFormat: 'CSV',
+});

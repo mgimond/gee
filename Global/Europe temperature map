@@ -1,0 +1,34 @@
+var reg =['FR','UK','SP','SW','RO','IT','PO','SZ','GM','NL', 'NO',
+'BE','AU','DA','EI','EZ','FI','GR','HR','HU','KV','LO','LU','RB','BU',
+'RI','RO','SI','UP','PL','LG','LH','EN','BK','BO','AL', 'MK','MD','MJ']
+var st_sub = ee.FeatureCollection("USDOS/LSIB/2013")
+    .filter(ee.Filter.inList('cc',reg));
+
+var dataset = ee.ImageCollection('IDAHO_EPSCOR/TERRACLIMATE')
+                  .filter(ee.Filter.date('2018-01-01', '2019-01-01'))
+                  .select('tmmx')
+                  .mean()
+                  .clip(st_sub);
+
+print(dataset)
+var maximumTemperatureVis = {
+  min: -300.0,
+  max: 300.0,
+  palette: [
+    '1a3678', '2955bc', '5699ff', '8dbae9', 'acd1ff', 'caebff', 'e5f9ff',
+    'fdffb4', 'ffe6a2', 'ffc969', 'ffa12d', 'ff7c1f', 'ca531a', 'ff0000',
+    'ab0000'
+  ],
+};
+Map.setCenter(71.72, 52.48, 3);
+Map.addLayer(dataset, maximumTemperatureVis, 'Maximum Temperature');
+
+
+Export.image.toDrive({
+  image: dataset,
+  description: 'EUR_2018',
+  fileFormat: 'GeoTIFF',
+  scale: 8000
+});
+
+

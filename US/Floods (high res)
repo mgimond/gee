@@ -1,0 +1,15 @@
+var dataset = ee.ImageCollection('JRC/CEMS_GLOFAS/FloodHazard/v1')
+             .select("depth")
+            .filterMetadata('return_period','equals',500)  // 500 year flood
+            .sum();
+            
+
+var depth = dataset.select('depth');
+var depthVis = {
+  min: 0,
+  max: 1,
+  palette: ['ffffff','0000ff'],
+};
+Map.setCenter(-70, 47.28, 4);
+Map.addLayer(depth, depthVis, 'JRC Flood Hazard Maps');
+

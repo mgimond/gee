@@ -1,0 +1,56 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var geometry = 
+    /* color: #ffc82d */
+    /* shown: false */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-71.37677105166289, 45.96175451780792],
+          [-71.37677105166289, 41.074286619875544],
+          [-63.027161676662885, 41.074286619875544],
+          [-63.027161676662885, 45.96175451780792]]], null, false);
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+// Define region to clip
+var geometry = 
+    ee.Geometry.Polygon(
+        [[[-71.37677105166289, 45.96175451780792],
+          [-71.37677105166289, 41.074286619875544],
+          [-63.027161676662885, 41.074286619875544],
+          [-63.027161676662885, 45.96175451780792]]], null, false);
+
+// Get Modis data for date range
+var dataset = ee.ImageCollection('NASA/OCEANDATA/MODIS-Aqua/L3SMI')
+                  .filterDate('2022-01-01', '2022-01-31');
+// Get chl-a element from Modis
+var chla = dataset.select(['chlor_a']);
+
+// Calculate mean chl-a 
+var meanchla = chla.reduce(ee.Reducer.mean());
+
+// Clip to region
+var clip_chla = meanchla.clip(geometry);
+
+// Define color palette
+var vis = {
+  min: 0,
+  max: 10,
+  palette: [
+    '0000FF', '1A52FF', '349FFF', '4ECAFF', 
+    '67FFFF', 'FFFF00', 'FFEB4D', 'FFD699', 
+    'FFC2B2', 'FF0000'
+  ]
+};
+
+// Display the data 
+Map.addLayer(clip_chla, vis, 'Chlorophyll-a concentration');
+Map.setCenter(-68, 45, 5);
+
+// Export the image, specifying scale and region.
+Export.image.toDrive({
+  image: clip_chla,
+  description: 'chla',
+  scale: 4000
+}); 

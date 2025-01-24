@@ -1,0 +1,46 @@
+// get scene center
+var point = ee.Geometry.Point([28.57600852914561, -20.1544170875363]);
+var poly = ee.Geometry.Rectangle(
+        [28.44966575570811, -20.28199570977856,
+          28.714710921723736, -20.046086707549875]);
+
+var raw = ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA');
+
+ var image = ee.Image(raw
+    .filterBounds(point)
+    .filterDate('2015-06-01', '2015-09-01')
+    .sort('CLOUD_COVER')
+    .first());
+
+
+var evi = image.expression(
+    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+      'NIR': image.select('B5'),
+      'RED': image.select('B4'),
+      'BLUE': image.select('B2')
+});
+
+print(evi) // Print info to console
+
+// Create color scheme
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+// Add layer to map
+Map.setCenter(28.593, -20.157,12); // Center the map
+Map.addLayer(evi, colorizedVis, 'EVI'); // Display the map
+
+// Export to drive
+// Create a task that you can launch from the Tasks tab.
+Export.image.toDrive({
+  image: evi,
+  description: 'EVI_composite',
+  region: poly
+});

@@ -1,0 +1,63 @@
+var point = ee.Geometry.Point([28.586476867675742, -20.155066218692486]);
+var poly = ee.Geometry.Rectangle(
+        [28.44966575570811, -20.28199570977856,
+          28.714710921723736, -20.046086707549875]);
+
+
+// var raw = ee.ImageCollection('LANDSAT/LT04/C01/T1_32DAY_NDVI')
+// var raw = ee.ImageCollection('LANDSAT/LT05/C01/T1_8DAY_EVI')
+// var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_8DAY_EVI')
+//var raw = ee.ImageCollection('LANDSAT/LE07/C01/T1_32DAY_EVI')
+var raw = ee.ImageCollection('LANDSAT/LC8_L1T_8DAY_EVI')
+
+
+ var evi = ee.Image(raw
+    .filterBounds(poly)
+    .filterDate('2015-12-30', '2016-12-30')
+  //  .sort('CLOUD_COVER')
+ //   .first()
+ );
+  
+/*    
+var subset = dataset.filterBounds(point);
+
+var evi = subset.select('EVI');
+*/
+
+var colorizedVis = {
+  min: 0.0,
+  max: 1.0,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+print('evi', evi);  // List EVI images in the console
+
+//Map.setCenter(28.593, -20.157,12); // Center the map
+//Map.addLayer(evi, colorizedVis, 'EVI'); // Display the map
+
+
+// Making a chart at point location overtime
+
+var chart = ui.Chart.image.series({
+  imageCollection: evi,
+  region: point,
+  reducer: ee.Reducer.first(),
+  scale: 1
+}).setOptions({title: 'EVI over time'});
+
+print(chart)
+
+
+/*
+// Export to drive
+// Create a task that you can launch from the Tasks tab.
+Export.image.toDrive({
+  image: evi,
+  description: 'EVI_google',
+  region: poly
+});
+*/
+
