@@ -1,0 +1,65 @@
+// Define study extent
+var state =['23']; /* Maine only for now. Add more states via comma */
+var st_sub = ee.FeatureCollection("TIGER/2016/States")
+    .filter(ee.Filter.inList('STATEFP',state));
+
+// Specify the model parameters
+// Model types can be found here: https://climate.northwestknowledge.net/MACA/GCMs.php
+var modelName = 'HadGEM2-ES365';
+var startDate = ee.Date('2099-01-01'); 
+var endDate = ee.Date('2099-12-31');
+var scenario = 'rcp45';
+
+// Load the dataset for minimum and maximum temperature for model X
+var macavData = ee.ImageCollection('IDAHO_EPSCOR/MACAv2_METDATA_MONTHLY')
+  .filter(ee.Filter.eq('model', modelName))
+  .filter(ee.Filter.eq('scenario', scenario))
+  .filter(ee.Filter.date(startDate, endDate))
+  .select(['tasmin', 'tasmax']);
+
+// Calculate the average tmin and tmax for the span of years
+var averageMonthlyMin = macavData.select('tasmin')
+.filter(ee.Filter.calendarRange(6, 8, 'month')) // limit to month range (1=jan)
+                              .mean();
+                             
+var averageMonthlyMax = macavData.select('tasmax')
+.filter(ee.Filter.calendarRange(6, 8, 'month')) // limit to month range (1=jan)
+                              .mean();
+
+// Function to crop images in an image collection
+var clip_images = function(image) {
+  return image.clip(st_sub);
+};
+
+// Clip image collection
+var maxtemp_maine = averageMonthlyMax.clip(st_sub);
+var mintemp_maine = averageMonthlyMin.clip(st_sub);
+
+// Convert to C and compute mean
+var meantemp_maine = maxtemp_maine.add(mintemp_maine)
+var meantemp_maine = meantemp_maine.divide(2)
+var meantemp_maine = meantemp_maine.subtract(273.15)
+
+//var mintemp_maine = macavData.map(clip_images);
+var monthlyAirTemperatureVis = {
+  min: 0,
+  max: 25,
+  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
+};
+Map.setCenter(-69.5, 45.5, 5);
+
+Map.addLayer(
+    meantemp_maine, monthlyAirTemperatureVis,
+    'Mean');
+
+Export.image.toDrive({
+  image: meantemp_maine,
+  folder: "GEE",
+  description: 'meantemp_maine_jun_jul_aug_2099',
+  scale: 3000,
+  crs: "epsg:26919",
+  region: st_sub
+})
+
+
+
